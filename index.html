@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>دستیار من</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0d1117">
+<style>
+  :root{
+    --bg: #0d1117;
+    --panel: #151b23;
+    --panel-2: #1c2530;
+    --accent: #4fd1c5;
+    --accent-2: #7c8cf8;
+    --text: #e8edf2;
+    --muted: #8b98a5;
+    --bubble-user: #2a3542;
+    --bubble-ai: #16202b;
+    --danger: #ff6b6b;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color: transparent;}
+  html,body{height:100%; margin:0; overflow:hidden;}
+  body{
+    background: radial-gradient(1200px 800px at 80% -10%, #16202e 0%, var(--bg) 55%);
+    color: var(--text);
+    font-family: -apple-system, "Vazirmatn", "Segoe UI", Tahoma, sans-serif;
+    display:flex; flex-direction:column; height:100vh;
+  }
+  header{
+    padding: 14px 18px 12px;
+    display:flex; align-items:center; justify-content:space-between;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    flex-shrink:0;
+  }
+  .brand{ display:flex; align-items:center; gap:10px; }
+  .dot{
+    width:10px; height:10px; border-radius:50%;
+    background: var(--accent);
+    box-shadow: 0 0 12px var(--accent);
+    flex-shrink:0;
+  }
+  .brand h1{ font-size:16px; margin:0; font-weight:700; letter-spacing:0.2px; }
+  .brand span{ font-size:11px; color:var(--muted); display:block; margin-top:2px;}
+  .icon-btn{
+    background: var(--panel-2); border:none; color:var(--muted);
+    width:34px; height:34px; border-radius:10px; font-size:15px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  #chat{
+    flex:1; overflow-y:auto; padding: 16px 14px 8px;
+    display:flex; flex-direction:column; gap:12px;
+  }
+  .msg{ max-width: 86%; padding:11px 14px; border-radius:16px; line-height:1.65; font-size:14.5px; white-space:pre-wrap; word-wrap:break-word; }
+  .msg.user{ align-self:flex-end; background: var(--bubble-user); border-bottom-left-radius:4px; }
+  .msg.ai{ align-self:flex-start; background: var(--bubble-ai); border:1px solid rgba(255,255,255,0.05); border-bottom-right-radius:4px; }
+  .msg.system{ align-self:center; color:var(--muted); font-size:12px; background:none; padding:4px; }
+  .msg .tag{ display:block; font-size:10px; color: var(--accent); margin-bottom:4px; letter-spacing:0.5px; }
+  .msg.searching{ color:var(--muted); font-style:italic; }
+  .typing{ display:flex; gap:4px; align-self:flex-start; padding:12px 16px; }
+  .typing span{ width:6px; height:6px; border-radius:50%; background:var(--muted); animation: bounce 1.2s infinite; }
+  .typing span:nth-child(2){ animation-delay:0.15s; }
+  .typing span:nth-child(3){ animation-delay:0.3s; }
+  @keyframes bounce{ 0%,60%,100%{ transform:translateY(0); opacity:0.5;} 30%{ transform:translateY(-5px); opacity:1;} }
+
+  #inputBar{
+    flex-shrink:0; padding: 10px 12px calc(12px + env(safe-area-inset-bottom));
+    background: var(--panel);
+    border-top: 1px solid rgba(255,255,255,0.06);
+    display:flex; gap:8px; align-items:flex-end;
+  }
+  #textInput{
+    flex:1; background: var(--panel-2); border:1px solid rgba(255,255,255,0.07);
+    color:var(--text); border-radius:20px; padding:11px 16px; font-size:14.5px;
+    resize:none; max-height:120px; font-family:inherit; line-height:1.4;
+  }
+  #textInput:focus{ outline:none; border-color: var(--accent); }
+  #sendBtn{
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    border:none; color:#0d1117; font-weight:700; width:42px; height:42px;
+    border-radius:50%; flex-shrink:0; font-size:16px; display:flex; align-items:center; justify-content:center;
+  }
+  #sendBtn:disabled{ opacity:0.4; }
+  .toggle-row{ display:flex; gap:6px; padding: 0 14px 8px; flex-shrink:0; }
+  .toggle{
+    font-size:11.5px; color:var(--muted); background:var(--panel-2);
+    border:1px solid rgba(255,255,255,0.06); padding:5px 10px; border-radius:20px;
+    display:flex; align-items:center; gap:5px;
+  }
+  .toggle.on{ color: var(--accent); border-color: rgba(79,209,197,0.4); background: rgba(79,209,197,0.08); }
+  #panel-overlay{
+    position:fixed; inset:0; background:rgba(0,0,0,0.6); display:none;
+    align-items:flex-end; z-index:10;
+  }
+  #settingsPanel{
+    background: var(--panel); width:100%; border-radius:20px 20px 0 0;
+    padding:20px; max-height:70vh; overflow-y:auto;
+  }
+  #settingsPanel h3{ margin:0 0 12px; font-size:15px; }
+  #settingsPanel textarea{
+    width:100%; background:var(--panel-2); color:var(--text); border:1px solid rgba(255,255,255,0.07);
+    border-radius:10px; padding:10px; font-size:13px; min-height:90px; font-family:inherit;
+  }
+  #settingsPanel .row{ display:flex; gap:8px; margin-top:12px; }
+  #settingsPanel button{
+    flex:1; padding:11px; border-radius:10px; border:none; font-size:13.5px; font-weight:600;
+  }
+  .btn-primary{ background: var(--accent); color:#0d1117; }
+  .btn-danger{ background: rgba(255,107,107,0.15); color: var(--danger); border:1px solid rgba(255,107,107,0.3) !important; }
+  .btn-ghost{ background: var(--panel-2); color: var(--muted); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="dot"></div>
+    <div>
+      <h1>دستیار من</h1>
+      <span id="statusLine">آماده</span>
+    </div>
+  </div>
+  <button class="icon-btn" onclick="openSettings()">⚙️</button>
+</header>
+
+<div class="toggle-row">
+  <div class="toggle on" id="webToggle" onclick="toggleWeb()">🌐 اینترنت: روشن</div>
+  <div class="toggle on" id="memToggle" onclick="toggleMem()">🧠 حافظه: روشن</div>
+</div>
+
+<div id="chat"></div>
+
+<div id="inputBar">
+  <textarea id="textInput" rows="1" placeholder="پیامت رو بنویس..." onkeydown="handleKey(event)" oninput="autoGrow(this)"></textarea>
+  <button id="sendBtn" onclick="sendMessage()">➤</button>
+</div>
+
+<div id="panel-overlay" onclick="if(event.target===this) closeSettings()">
+  <div id="settingsPanel">
+    <h3>کلید API</h3>
+    <p style="color:var(--muted); font-size:12.5px; margin-top:-6px;">برای کارکرد اپ لازمه. از console.anthropic.com کلیدت رو بساز و اینجا بچسبون. فقط روی همین گوشی ذخیره می‌شه.</p>
+    <textarea id="apiKeyBox" placeholder="sk-ant-..." style="min-height:40px;"></textarea>
+    <div class="row">
+      <button class="btn-primary" onclick="saveApiKey()">ذخیره کلید</button>
+    </div>
+
+    <h3 style="margin-top:20px;">حافظه</h3>
+    <p style="color:var(--muted); font-size:12.5px; margin-top:-6px;">این متن به‌عنوان زمینه ثابت به هر پیام اضافه می‌شه. اسم، علایق، لحن دلخواه و... رو اینجا بنویس.</p>
+    <textarea id="memoryBox" placeholder="مثلاً: اسم من علی‌ست، برنامه‌نویسم، دوست دارم جواب‌ها کوتاه و خودمونی باشن..."></textarea>
+    <div class="row">
+      <button class="btn-primary" onclick="saveMemory()">ذخیره</button>
+      <button class="btn-ghost" onclick="closeSettings()">بستن</button>
+    </div>
+    <div class="row">
+      <button class="btn-danger" onclick="clearHistory()">پاک کردن کل گفتگو</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let webEnabled = true;
+let memEnabled = true;
+let messages = []; // {role, content}
+let userMemory = "";
+let apiKey = "";
+let sending = false;
+
+// ذخیره‌سازی محلی روی خود گوشی (به‌جای حافظه‌ی مخصوص Claude)
+const localStore = {
+  get(key){
+    const v = localStorage.getItem(key);
+    return Promise.resolve(v === null ? null : {value: v});
+  },
+  set(key, value){
+    localStorage.setItem(key, value);
+    return Promise.resolve({key, value});
+  }
+};
+
+const chatEl = document.getElementById('chat');
+const inputEl = document.getElementById('textInput');
+
+function autoGrow(el){
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+}
+
+function handleKey(e){
+  if(e.key === 'Enter' && !e.shiftKey){
+    e.preventDefault();
+    sendMessage();
+  }
+}
+
+function scrollBottom(){
+  chatEl.scrollTop = chatEl.scrollHeight;
+}
+
+function renderMessage(role, text, opts={}){
+  const div = document.createElement('div');
+  div.className = 'msg ' + role + (opts.searching ? ' searching' : '');
+  if(role === 'ai' && opts.tag){
+    div.innerHTML = '<span class="tag">' + opts.tag + '</span>';
+    const span = document.createElement('span');
+    span.textContent = text;
+    div.appendChild(span);
+  } else {
+    div.textContent = text;
+  }
+  chatEl.appendChild(div);
+  scrollBottom();
+  return div;
+}
+
+function showTyping(){
+  const div = document.createElement('div');
+  div.className = 'typing';
+  div.id = 'typingIndicator';
+  div.innerHTML = '<span></span><span></span><span></span>';
+  chatEl.appendChild(div);
+  scrollBottom();
+}
+function hideTyping(){
+  const t = document.getElementById('typingIndicator');
+  if(t) t.remove();
+}
+
+function toggleWeb(){
+  webEnabled = !webEnabled;
+  const el = document.getElementById('webToggle');
+  el.classList.toggle('on', webEnabled);
+  el.textContent = '🌐 اینترنت: ' + (webEnabled ? 'روشن' : 'خاموش');
+}
+function toggleMem(){
+  memEnabled = !memEnabled;
+  const el = document.getElementById('memToggle');
+  el.classList.toggle('on', memEnabled);
+  el.textContent = '🧠 حافظه: ' + (memEnabled ? 'روشن' : 'خاموش');
+}
+
+function openSettings(){
+  document.getElementById('memoryBox').value = userMemory;
+  document.getElementById('apiKeyBox').value = apiKey;
+  document.getElementById('panel-overlay').style.display = 'flex';
+}
+function closeSettings(){
+  document.getElementById('panel-overlay').style.display = 'none';
+}
+
+async function saveApiKey(){
+  apiKey = document.getElementById('apiKeyBox').value.trim();
+  try{
+    await localStore.set('api_key', apiKey);
+  }catch(e){ console.error(e); }
+  renderMessage('system', 'کلید ذخیره شد ✓');
+}
+
+async function saveMemory(){
+  userMemory = document.getElementById('memoryBox').value.trim();
+  try{
+    await localStore.set('user_memory', userMemory);
+  }catch(e){ console.error(e); }
+  closeSettings();
+  renderMessage('system', 'حافظه ذخیره شد ✓');
+}
+
+async function clearHistory(){
+  messages = [];
+  chatEl.innerHTML = '';
+  try{
+    await localStore.set('chat_history', JSON.stringify([]));
+  }catch(e){ console.error(e); }
+  closeSettings();
+  renderMessage('system', 'گفتگو پاک شد');
+}
+
+async function loadState(){
+  try{
+    const hist = await localStore.get('chat_history');
+    if(hist && hist.value){
+      messages = JSON.parse(hist.value);
+      messages.forEach(m => renderMessage(m.role === 'user' ? 'user' : 'ai', m.content));
+    }
+  }catch(e){ /* no history yet */ }
+
+  try{
+    const mem = await localStore.get('user_memory');
+    if(mem && mem.value){ userMemory = mem.value; }
+  }catch(e){ /* no memory yet */ }
+
+  try{
+    const key = await localStore.get('api_key');
+    if(key && key.value){ apiKey = key.value; }
+  }catch(e){ /* no key yet */ }
+
+  if(messages.length === 0){
+    renderMessage('system', 'سلام! من دستیار توام. اول از ⚙️ کلید API‌ت رو وارد کن، بعد شروع کنیم.');
+  }
+}
+
+async function persistHistory(){
+  try{
+    await localStore.set('chat_history', JSON.stringify(messages));
+  }catch(e){ console.error('persist failed', e); }
+}
+
+async function sendMessage(){
+  const text = inputEl.value.trim();
+  if(!text || sending) return;
+  if(!apiKey){
+    renderMessage('system', 'اول از ⚙️ کلید API‌ت رو وارد و ذخیره کن.');
+    return;
+  }
+  sending = true;
+  document.getElementById('sendBtn').disabled = true;
+
+  inputEl.value = '';
+  autoGrow(inputEl);
+  renderMessage('user', text);
+  messages.push({role:'user', content:text});
+  await persistHistory();
+
+  showTyping();
+  document.getElementById('statusLine').textContent = webEnabled ? 'در حال فکر کردن و جستجو...' : 'در حال فکر کردن...';
+
+  try{
+    const systemParts = [];
+    systemParts.push('تو یک دستیار هوش مصنوعی فارسی‌زبان هستی، دوستانه، مختصر و مفید. همیشه به فارسی جواب بده مگر کاربر زبان دیگه‌ای بخواد.');
+    if(memEnabled && userMemory){
+      systemParts.push('اطلاعات زمینه‌ای درباره کاربر (ازش استفاده کن ولی به‌طور طبیعی، بدون تکرار مستقیم): ' + userMemory);
+    }
+
+    const apiMessages = messages.map(m => ({role: m.role, content: m.content}));
+
+    const body = {
+      model: "claude-sonnet-5",
+      max_tokens: 1000,
+      system: systemParts.join('\n\n'),
+      messages: apiMessages
+    };
+
+    if(webEnabled){
+      body.tools = [{ type: "web_search_20250305", name: "web_search" }];
+    }
+
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+        "anthropic-dangerous-direct-browser-access": "true"
+      },
+      body: JSON.stringify(body)
+    });
+
+    const data = await response.json();
+    hideTyping();
+
+    if(data.error){
+      renderMessage('ai', 'خطا از سمت API: ' + (data.error.message || JSON.stringify(data.error)));
+      document.getElementById('statusLine').textContent = 'خطا';
+      sending = false;
+      document.getElementById('sendBtn').disabled = false;
+      return;
+    }
+
+    let usedSearch = false;
+    let replyText = '';
+    if(data.content && Array.isArray(data.content)){
+      data.content.forEach(block => {
+        if(block.type === 'text'){
+          replyText += block.text;
+        }
+        if(block.type === 'server_tool_use' || block.type === 'web_search_tool_result'){
+          usedSearch = true;
+        }
+      });
+    }
+    if(!replyText) replyText = 'ببخشید، مشکلی پیش اومد. دوباره امتحان کن.';
+
+    renderMessage('ai', replyText, usedSearch ? {tag:'🌐 با جستجوی وب'} : {});
+    messages.push({role:'assistant', content: replyText});
+    await persistHistory();
+    document.getElementById('statusLine').textContent = 'آماده';
+
+  }catch(err){
+    hideTyping();
+    console.error(err);
+    renderMessage('ai', 'اتصال برقرار نشد. اگه توی اپ Claude باز نیست یا اینترنت قطعه، دوباره امتحان کن.');
+    document.getElementById('statusLine').textContent = 'خطا در اتصال';
+  }finally{
+    sending = false;
+    document.getElementById('sendBtn').disabled = false;
+  }
+}
+
+loadState();
+</script>
+
+</body>
+</html>
